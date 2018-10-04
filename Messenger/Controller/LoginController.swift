@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Firebase
 
 class LoginController: UIViewController {
     
@@ -21,13 +22,16 @@ class LoginController: UIViewController {
         return view
     }()
     
-    let loginRegisterButton: UIButton = {
+    lazy var loginRegisterButton: UIButton = {
         let button = UIButton(type: .system)
         button.backgroundColor = UIColor.rgb(red: 80, green: 101, blue: 161)
         button.setTitle("Register", for: .normal)
         button.setTitleColor(.white, for: .normal)
         button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
         button.translatesAutoresizingMaskIntoConstraints = false
+        
+        button.addTarget(self, action: #selector(handleRegister), for: .touchUpInside)
+        
         return button
     }()
     
@@ -92,6 +96,39 @@ class LoginController: UIViewController {
         setupLoginRegisterButton()
         setupProfileImageView()
         
+    }
+    
+    @objc func handleRegister(){
+        
+        guard let email = emailTextField.text, let password = passwordTextField.text, let name = nameTextField.text else{
+            print("Form is not valid")
+            return
+        }
+        
+        //create a new user on our firebase with email and password
+        Auth.auth().createUser(withEmail: email, password: password) { (user, error) in
+            if error != nil{
+                print(error!)
+                return
+            }
+            
+            guard let uid = user?.user.uid else {return}
+            
+            //successfullt authenticated user
+            let ref = Database.database().reference(fromURL: "https://messenger-55009.firebaseio.com/")
+            let usersReference = ref.child("users").child(uid)
+            
+            let values = ["name": name, "email": email]
+            usersReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
+                if err != nil{
+                    print(err!)
+                    return
+                }
+                print("save user successfully into Firebase database")
+            })
+            
+            
+        }
     }
     
     //MARK: - Functions
