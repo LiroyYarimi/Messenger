@@ -71,11 +71,15 @@ class LoginController: UIViewController {
         return tf
     }()
     
-    let profileImageView : UIImageView = {
+    lazy var profileImageView : UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.image = UIImage(named: "gameofthrones_splash")
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleSelectProfileImageView)))
+        imageView.isUserInteractionEnabled = true
+        
         return imageView
     }()
     
@@ -111,88 +115,8 @@ class LoginController: UIViewController {
     
     //MARK: - handle functions
     
-    @objc func handleLoginRegisterChange(){
-        
-        let title = loginRegisterSegmentedControl.titleForSegment(at: loginRegisterSegmentedControl.selectedSegmentIndex)
-        
-        loginRegisterButton.setTitle(title, for: .normal)
-        
-        //change height of inputContainerView
-        inputsContainerViewHeightAnchor?.constant = loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 100 : 150
-        
-        //change height of nameTextField
-        nameTextFieldHeightAnchor?.isActive = false
-        nameTextFieldHeightAnchor = nameTextField.heightAnchor.constraint(equalTo: inputContainerView.heightAnchor, multiplier: loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 0 : 1/3)
-        nameTextFieldHeightAnchor?.isActive = true
-        
-        //change height of emailTextField
-        emailTextFieldHeightAnchor?.isActive = false
-        emailTextFieldHeightAnchor = emailTextField.heightAnchor.constraint(equalTo: inputContainerView.heightAnchor, multiplier: loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 1/2 : 1/3)
-        emailTextFieldHeightAnchor?.isActive = true
-        
-        //change height of passwordTextField
-        passwordTextFieldHeightAnchor?.isActive = false
-        passwordTextFieldHeightAnchor = passwordTextField.heightAnchor.constraint(equalTo: inputContainerView.heightAnchor, multiplier: loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? 1/2 : 1/3)
-        passwordTextFieldHeightAnchor?.isActive = true
-
-    }
     
-    @objc func handleLoginRegister(){
-        loginRegisterSegmentedControl.selectedSegmentIndex == 0 ? handleLogin() : handleRegister()
-    }
     
-    func handleLogin(){
-        
-        guard let email = emailTextField.text, let password = passwordTextField.text else{
-            print("Form is not valid")
-            return
-        }
-        
-        Auth.auth().signIn(withEmail: email, password: password) { (user, error) in
-            if error != nil{
-                print(error!)
-                return
-            }
-            
-            //successfully log in our user
-            self.dismiss(animated: true, completion: nil)
-        }
-    }
-    
-    func handleRegister(){
-        
-        guard let email = emailTextField.text, let password = passwordTextField.text, let name = nameTextField.text else{
-            print("Form is not valid")
-            return
-        }
-        
-        //create a new user on our firebase with email and password
-        Auth.auth().createUser(withEmail: email, password: password) { (user, error) in
-            if error != nil{
-                print(error!)
-                return
-            }
-            
-            guard let uid = user?.user.uid else {return}
-            
-            //successfullt authenticated user
-            let ref = Database.database().reference(fromURL: "https://messenger-55009.firebaseio.com/")
-            let usersReference = ref.child("users").child(uid)
-            
-            let values = ["name": name, "email": email]
-            usersReference.updateChildValues(values, withCompletionBlock: { (err, ref) in
-                if err != nil{
-                    print(err!)
-                    return
-                }
-                print("save user successfully into Firebase database")
-                
-                self.dismiss(animated: true, completion: nil)
-            })
-            
-            
-        }
-    }
     
     //MARK: - Functions
     
