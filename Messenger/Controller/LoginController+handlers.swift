@@ -123,26 +123,17 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
                         return
                     }
                     
-//                    var downloadUrl: URL?
                     storageRef.downloadURL(completion: { (url, err) in
                         if err != nil{
                             print(err!)
                             return
                         }
-//                        downloadUrl = url
-//                        guard let downloadUrl = url else {return}
-//                        downloadUrl = url
                         
                         if let profileImageUrl = url?.absoluteString{
                             let values = ["name": name, "email": email, "profileImageUrl": profileImageUrl]
                             self.registerUserIntoDatabaseWithUid(uid: uid, values: values)
                         }
                     })
-                    
-                    
-
-                    
-//                    print(metadata)
                 })
             }
             
