@@ -91,6 +91,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
             }
             
             //successfully log in our user
+            self.messagesController?.fetchUserAndSetupNavBarTitle()
             self.dismiss(animated: true, completion: nil)
         }
     }
@@ -114,9 +115,13 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
             //successfullt authenticated user
             //let's save the user image
             let imageName = NSUUID().uuidString// unique string
-            let storageRef = Storage.storage().reference().child("profile_images").child("\(imageName).png")
+            let storageRef = Storage.storage().reference().child("profile_images").child("\(imageName).jpg")
             
-            if let uploadData = self.profileImageView.image!.pngData(){
+            //save on firebase only 10% of the original image quality
+            if let profileImage = self.profileImageView.image, let uploadData = profileImage.jpegData(compressionQuality: 0.1){
+            
+//            if let uploadData = self.profileImageView.image!.pngData(){
+        
                 storageRef.putData(uploadData, metadata: nil, completion: { (metadata, error) in
                     if error != nil{
                         print(error!)
@@ -131,7 +136,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
                         
                         if let profileImageUrl = url?.absoluteString{
                             let values = ["name": name, "email": email, "profileImageUrl": profileImageUrl]
-                            self.registerUserIntoDatabaseWithUid(uid: uid, values: values)
+                            self.registerUserIntoDatabaseWithUid(uid: uid, values: values as [String : AnyObject])
                         }
                     })
                 })
@@ -144,7 +149,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
         }
     }
     
-    private func registerUserIntoDatabaseWithUid(uid: String, values: [String: String]){
+    private func registerUserIntoDatabaseWithUid(uid: String, values: [String: AnyObject]){
         
         let ref = Database.database().reference(fromURL: "https://messenger-55009.firebaseio.com/")
         let usersReference = ref.child("users").child(uid)
@@ -156,6 +161,11 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
                 return
             }
             print("save user successfully into Firebase database")
+            
+//            self.messagesController?.fetchUserAndSetupNavBarTitle()
+//            self.messagesController?.navigationItem.title = values["name"]
+            let user = User(name: values["name"] as! String, email: values["email"] as! String, profileImageUrl: values["profileImageUrl"] as? String)
+            self.self.messagesController?.setupNavBarWithUser(user: user)
             
             self.dismiss(animated: true, completion: nil)
         })

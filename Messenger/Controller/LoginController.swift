@@ -13,6 +13,8 @@ class LoginController: UIViewController {
     
     //MARK: - Properties initialization
     
+    var messagesController: MessagesController?
+    
     let inputContainerView : UIView = {
         let view = UIView()
         view.backgroundColor = UIColor.white
@@ -92,6 +94,7 @@ class LoginController: UIViewController {
         return sc
     }()
     
+    
     //MARK: - Main - viewDidLoad
 
     override func viewDidLoad() {
@@ -114,7 +117,7 @@ class LoginController: UIViewController {
     }
     
     //MARK: - handle functions
-    
+    //in the "LoginController+handlers" file
     
     
     
