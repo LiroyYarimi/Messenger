@@ -10,6 +10,28 @@ import UIKit
 import Firebase
 
 class MessagesController: UITableViewController {
+    
+//    lazy var titleView : UIView = {
+//        let tv = UIView()
+//        tv.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
+//        tv.backgroundColor = .blue
+//
+////        tv.isUserInteractionEnabled = true
+//        tv.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+//        return tv
+//    }()
+//
+//    lazy var profileImageView: UIImageView = {
+//        let pi = UIImageView()
+//        pi.translatesAutoresizingMaskIntoConstraints = false
+//        pi.contentMode = .scaleAspectFill
+//        pi.layer.cornerRadius = 20
+//        pi.clipsToBounds = true
+//        pi.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+//        return pi
+//    }()
+    
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,6 +43,10 @@ class MessagesController: UITableViewController {
         navigationItem.rightBarButtonItem = UIBarButtonItem(image: newMessageImage, style: .plain, target: self, action: #selector(handleNewMessage))
         
         checkIfUserIsLoggedIn()
+        
+//        titleView.isUserInteractionEnabled = true
+//        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+        
     }
     
     func checkIfUserIsLoggedIn(){
@@ -53,13 +79,17 @@ class MessagesController: UITableViewController {
         }, withCancel: nil)
     }
     
+    
+    //present profile image and user name
     func setupNavBarWithUser(user: User){
         
 //        self.navigationItem.title = user.name
         
         let titleView = UIView()
-        titleView.frame = CGRect(x: 0, y: 0, width: 100, height: 40)
-        titleView.backgroundColor = .red
+        titleView.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
+        titleView.backgroundColor = .blue
+//        titleView.isUserInteractionEnabled = true
+        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
         
         let profileImageView = UIImageView()
         profileImageView.translatesAutoresizingMaskIntoConstraints = false
@@ -79,12 +109,12 @@ class MessagesController: UITableViewController {
             profileImageView.heightAnchor.constraint(equalToConstant: 40)
         ]
         NSLayoutConstraint.activate(constraints)
-        
+//
         let nameLabel = UILabel()
         nameLabel.text = user.name
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         titleView.addSubview(nameLabel)
-        
+
         let constraintsName = [
             nameLabel.leadingAnchor.constraint(equalTo: profileImageView.trailingAnchor, constant: 8),
             nameLabel.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
@@ -92,10 +122,15 @@ class MessagesController: UITableViewController {
             nameLabel.heightAnchor.constraint(equalTo: profileImageView.heightAnchor)
         ]
         NSLayoutConstraint.activate(constraintsName)
-        
+
         self.navigationItem.titleView = titleView
+    
         
+    }
+    
+    @objc func showChatController(){
         
+        print(123)
     }
     
     @objc func handleNewMessage(){

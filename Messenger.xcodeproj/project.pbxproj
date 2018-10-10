@@ -19,6 +19,7 @@
 		C8A675C92168E9AD00EA6641 /* NewMessageController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A675C82168E9AD00EA6641 /* NewMessageController.swift */; };
 		C8A675CD2168EE1B00EA6641 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A675CC2168EE1B00EA6641 /* User.swift */; };
 		C8A675CF2168F5E000EA6641 /* LoginController+handlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A675CE2168F5E000EA6641 /* LoginController+handlers.swift */; };
+		C8A675D1216DFF0F00EA6641 /* ChatLogController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A675D0216DFF0F00EA6641 /* ChatLogController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		C8A675C82168E9AD00EA6641 /* NewMessageController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageController.swift; sourceTree = "<group>"; };
 		C8A675CC2168EE1B00EA6641 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		C8A675CE2168F5E000EA6641 /* LoginController+handlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LoginController+handlers.swift"; sourceTree = "<group>"; };
+		C8A675D0216DFF0F00EA6641 /* ChatLogController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLogController.swift; sourceTree = "<group>"; };
 		F484FCFEA3B934F89BF6F502 /* Pods-Messenger.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Messenger.release.xcconfig"; path = "Pods/Target Support Files/Pods-Messenger/Pods-Messenger.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -105,6 +107,7 @@
 				C8A121192165F61B007C1C10 /* LoginController.swift */,
 				C8A121082165F33A007C1C10 /* MessagesController.swift */,
 				C8A675C82168E9AD00EA6641 /* NewMessageController.swift */,
+				C8A675D0216DFF0F00EA6641 /* ChatLogController.swift */,
 				C8A675CE2168F5E000EA6641 /* LoginController+handlers.swift */,
 			);
 			path = Controller;
@@ -255,6 +258,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C8A675D1216DFF0F00EA6641 /* ChatLogController.swift in Sources */,
 				C8A675C92168E9AD00EA6641 /* NewMessageController.swift in Sources */,
 				C8A121092165F33A007C1C10 /* MessagesController.swift in Sources */,
 				C8A675CD2168EE1B00EA6641 /* User.swift in Sources */,
