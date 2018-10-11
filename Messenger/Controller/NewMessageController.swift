@@ -31,8 +31,10 @@ class NewMessageController: UITableViewController {
 //            print(snapshot)
             if let dictionary = snapshot.value as? [String:AnyObject]{
                 
+                
                 if let name = dictionary["name"] as? String, let email = dictionary["email"] as? String, let image = dictionary["profileImageUrl"] as? String{
                     let user = User(name: name, email: email, profileImageUrl: image)
+                    user.id = snapshot.key
 //                    print(user.name ,user.email)
                     self.users.append(user)
                     
@@ -84,9 +86,18 @@ class NewMessageController: UITableViewController {
     
     //height for every row
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 70
+        return 72
     }
+    
+    var messagesController: MessagesController?
 
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        dismiss(animated: true) {
+            print("dismiss")
+            let user = self.users[indexPath.row]
+            self.messagesController?.showChatControllerForUser(user: user)
+        }
+    }
 
 }
 

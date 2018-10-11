@@ -8,11 +8,12 @@
 
 import UIKit
 
-class User: NSObject {
+class User {
     
     var name: String
     var email: String
     var profileImageUrl:String?
+    var id : String?
     
     init( name: String, email:String, profileImageUrl:String?){
         self.name = name

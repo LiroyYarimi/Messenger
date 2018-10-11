@@ -11,6 +11,10 @@ import Firebase
 
 class MessagesController: UITableViewController {
     
+    let cellId = "cellId"
+    
+    var messages = [Message]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -22,9 +26,39 @@ class MessagesController: UITableViewController {
         
         checkIfUserIsLoggedIn()
         
-//        titleView.isUserInteractionEnabled = true
-//        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+        observeMessages()
         
+    }
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return messages.count
+    }
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: cellId)
+        
+        cell.textLabel?.text = messages[indexPath.row].text!
+        return cell
+    }
+    
+    func observeMessages(){
+        
+        let ref = Database.database().reference().child("messages")
+        ref.observe(.childAdded, with: { (snapshot) in
+            
+            if let dictionary = snapshot.value as? [String:AnyObject]{
+                if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
+                    
+                    let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
+                    self.messages.append(message)
+                    
+                    self.tableView.reloadData()
+                    }
+                
+            }
+            
+//            print(snapshot)
+            
+        }, withCancel: nil)
     }
     
     func checkIfUserIsLoggedIn(){
@@ -66,17 +100,10 @@ class MessagesController: UITableViewController {
         let titleView = UIView()
         titleView.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
 
-        let zoomTap = UITapGestureRecognizer(target: self, action: #selector(showChatController))
-        zoomTap.numberOfTapsRequired = 1
-        titleView.addGestureRecognizer(zoomTap)
-        titleView.isUserInteractionEnabled = true
-        
-//        let containerView = UIView()
-//        containerView.translatesAutoresizingMaskIntoConstraints = false
-//        titleView.addSubview(containerView)
-
-
-
+//        let zoomTap = UITapGestureRecognizer(target: self, action: #selector(showChatController))
+//        zoomTap.numberOfTapsRequired = 1
+//        titleView.addGestureRecognizer(zoomTap)
+//        titleView.isUserInteractionEnabled = true
 
         let profileImageView = UIImageView()
         profileImageView.translatesAutoresizingMaskIntoConstraints = false
@@ -92,6 +119,7 @@ class MessagesController: UITableViewController {
         let constraints = [
             profileImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),
             profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
+            //this two constraints is the reason why the addGestureRecognizer doesn't work before (it was before equalToConstant: 40 )
             profileImageView.widthAnchor.constraint(equalTo: titleView.heightAnchor),
             profileImageView.heightAnchor.constraint(equalTo: titleView.heightAnchor)
         ]
@@ -110,21 +138,21 @@ class MessagesController: UITableViewController {
         ]
         NSLayoutConstraint.activate(constraintsName)
 
-//        containerView.centerXAnchor.constraint(equalTo: titleView.centerXAnchor).isActive = true
-//        containerView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor).isActive = true
-
         self.navigationItem.titleView = titleView
 
 
     }
 
-    @objc func showChatController(){
+    func showChatControllerForUser(user: User){
 
-        print(123)
+        let chatLogController = ChatLogController(collectionViewLayout: UICollectionViewFlowLayout())
+        chatLogController.user = user
+        navigationController?.pushViewController(chatLogController, animated: true)
     }
     
     @objc func handleNewMessage(){
         let newMessageController = NewMessageController()
+        newMessageController.messagesController = self
         //to get a navigation bar in our new controller (NewMessageController)
         let navController = UINavigationController(rootViewController: newMessageController)
         present(navController, animated: true, completion: nil)
