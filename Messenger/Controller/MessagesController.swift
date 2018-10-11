@@ -11,28 +11,6 @@ import Firebase
 
 class MessagesController: UITableViewController {
     
-//    lazy var titleView : UIView = {
-//        let tv = UIView()
-//        tv.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
-//        tv.backgroundColor = .blue
-//
-////        tv.isUserInteractionEnabled = true
-//        tv.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
-//        return tv
-//    }()
-//
-//    lazy var profileImageView: UIImageView = {
-//        let pi = UIImageView()
-//        pi.translatesAutoresizingMaskIntoConstraints = false
-//        pi.contentMode = .scaleAspectFill
-//        pi.layer.cornerRadius = 20
-//        pi.clipsToBounds = true
-//        pi.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
-//        return pi
-//    }()
-    
-    
-
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -82,21 +60,30 @@ class MessagesController: UITableViewController {
     
     //present profile image and user name
     func setupNavBarWithUser(user: User){
-        
+
 //        self.navigationItem.title = user.name
-        
+
         let titleView = UIView()
         titleView.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
-        titleView.backgroundColor = .blue
-//        titleView.isUserInteractionEnabled = true
-        titleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(showChatController)))
+
+        let zoomTap = UITapGestureRecognizer(target: self, action: #selector(showChatController))
+        zoomTap.numberOfTapsRequired = 1
+        titleView.addGestureRecognizer(zoomTap)
+        titleView.isUserInteractionEnabled = true
         
+//        let containerView = UIView()
+//        containerView.translatesAutoresizingMaskIntoConstraints = false
+//        titleView.addSubview(containerView)
+
+
+
+
         let profileImageView = UIImageView()
         profileImageView.translatesAutoresizingMaskIntoConstraints = false
         profileImageView.contentMode = .scaleAspectFill
         profileImageView.layer.cornerRadius = 20
         profileImageView.clipsToBounds = true
-        titleView.addSubview(profileImageView)
+        titleView.addSubview(profileImageView)//containerView
 
         if let profileImageUrl = user.profileImageUrl{
             profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
@@ -105,8 +92,8 @@ class MessagesController: UITableViewController {
         let constraints = [
             profileImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),
             profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
-            profileImageView.widthAnchor.constraint(equalToConstant: 40),
-            profileImageView.heightAnchor.constraint(equalToConstant: 40)
+            profileImageView.widthAnchor.constraint(equalTo: titleView.heightAnchor),
+            profileImageView.heightAnchor.constraint(equalTo: titleView.heightAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
 //
@@ -123,13 +110,16 @@ class MessagesController: UITableViewController {
         ]
         NSLayoutConstraint.activate(constraintsName)
 
+//        containerView.centerXAnchor.constraint(equalTo: titleView.centerXAnchor).isActive = true
+//        containerView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor).isActive = true
+
         self.navigationItem.titleView = titleView
-    
-        
+
+
     }
-    
+
     @objc func showChatController(){
-        
+
         print(123)
     }
     
@@ -153,8 +143,10 @@ class MessagesController: UITableViewController {
         loginController.messagesController = self
         present(loginController, animated: true, completion: nil)
     }
-    
-    
-
 }
+
+
+
+
+
 
