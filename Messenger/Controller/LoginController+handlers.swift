@@ -151,7 +151,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
     
     private func registerUserIntoDatabaseWithUid(uid: String, values: [String: AnyObject]){
         
-        let ref = Database.database().reference(fromURL: "https://messenger-55009.firebaseio.com/")
+        let ref = Database.database().reference()//(fromURL: "https://messenger-55009.firebaseio.com/")
         let usersReference = ref.child("users").child(uid)
         
 //        let values = ["name": name, "email": email, "profileImageUrl":]

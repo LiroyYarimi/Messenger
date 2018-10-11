@@ -14,6 +14,7 @@ class MessagesController: UITableViewController {
     let cellId = "cellId"
     
     var messages = [Message]()
+    var messagesDictionary = [String:Message]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,6 +27,8 @@ class MessagesController: UITableViewController {
         
         checkIfUserIsLoggedIn()
         
+        tableView.register(UserCell.self, forCellReuseIdentifier: cellId)
+        
         observeMessages()
         
     }
@@ -33,10 +36,19 @@ class MessagesController: UITableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return messages.count
     }
+    //height for every row
+    override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 72
+    }
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .subtitle, reuseIdentifier: cellId)
+
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! UserCell
         
-        cell.textLabel?.text = messages[indexPath.row].text!
+        let message = messages[indexPath.row]
+        
+        cell.message = message
+
         return cell
     }
     
@@ -49,7 +61,21 @@ class MessagesController: UITableViewController {
                 if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
                     
                     let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
-                    self.messages.append(message)
+//                    self.messages.append(message)
+                    if let toId = message.toId{
+                        self.messagesDictionary[toId] = message
+                        
+                        self.messages = Array(self.messagesDictionary.values)
+                        self.messages.sort(by: { (message1, message2) -> Bool in
+                            
+                            if let message1Timestamp = message1.timestamp, let message2Timestamp = message2.timestamp{
+                                let t1 = (message1Timestamp as NSString).doubleValue
+                                let t2 = (message2Timestamp as NSString).doubleValue
+                                return t1 > t2
+                            }
+                            return false
+                        })
+                    }
                     
                     self.tableView.reloadData()
                     }
