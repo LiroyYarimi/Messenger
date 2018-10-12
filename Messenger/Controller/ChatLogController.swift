@@ -9,11 +9,16 @@
 import UIKit
 import Firebase
 
-class ChatLogController: UICollectionViewController, UITextFieldDelegate {//notes is UIViewController (and not UITableViewController)
+class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICollectionViewDelegateFlowLayout{//notes is UIViewController (and not UITableViewController)
+    
+    let cellId = "cellId"
+    var messages = [Message]()
     
     var user: User?{
         didSet{
             navigationItem.title = user?.name
+            
+            observeMessages()
         }
     }
     
@@ -28,26 +33,63 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate {//note
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
-//        navigationItem.title = "Chat Log Controller"
         
+        collectionView.alwaysBounceVertical = true //make it dragable
         collectionView.backgroundColor = .white
-        
+        collectionView.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
         setupInputComponents()
     }
+    
+    override func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return messages.count
+    }
+    override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! ChatMessageCell
+//        cell.backgroundColor = .blue
+        let message = messages[indexPath.row]
+        cell.textView.text = message.text
+        return cell
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return CGSize(width: view.frame.width, height: 80)
+    }
+    
+    func observeMessages(){
+        
+        guard let uid = Auth.auth().currentUser?.uid else {return}
+        
+        let userMessagesRef = Database.database().reference().child("user-messages").child(uid)
+        userMessagesRef.observe(.childAdded, with: { (snapshot) in
+//            print(snapshot)
+            let messageId = snapshot.key
+            let messagesRef = Database.database().reference().child("messages").child(messageId)
+            messagesRef.observeSingleEvent(of: .value, with: { (snapshot) in
+//                print(snapshot)
+                guard let dictionary = snapshot.value as? [String:AnyObject] else {return}
+                let message = Message(fromId: dictionary["fromId"] as? String, text: dictionary["text"] as? String, timestamp: dictionary["timestamp"] as? String, toId: dictionary["toId"] as? String)
+                if message.chatPartnerId() == self.user?.id{
+                    self.messages.append(message)
+                    self.collectionView.reloadData()
+                }
+                
+            }, withCancel: nil)
+        }, withCancel: nil)
+    }
+    
     
     func setupInputComponents(){
         
         let containerView = UIView()
-//        containerView.backgroundColor = .red
+        containerView.backgroundColor = .white
         containerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(containerView)
         
         let containerViewConstraints = [
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),//safeAreaLayoutGuide
             containerView.widthAnchor.constraint(equalTo: view.widthAnchor),
-            containerView.heightAnchor.constraint(equalToConstant: 50)
+            containerView.heightAnchor.constraint(equalToConstant: 60)
         ]
         NSLayoutConstraint.activate(containerViewConstraints)
         
@@ -100,11 +142,23 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate {//note
         let toId = user!.id!
         let fromId = Auth.auth().currentUser!.uid
         let timestamp: Int = Int(NSDate().timeIntervalSince1970)
-        let value = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
-        childRef.updateChildValues(value)
+        let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
+//        childRef.updateChildValues(values)
         
-        
-        
+        childRef.updateChildValues(values){ (error, ref) in
+            if error != nil{
+                print(error!)
+                return
+            }
+            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId)
+            
+            let messageId = childRef.key
+            userMessagesRef.updateChildValues([messageId: 1])
+            
+            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId)
+            recipientUserMessagesRef.updateChildValues([messageId: 1])
+         }
+        inputTextField.text = ""
     }
     
     //this func call when user press on "Enter" button
@@ -113,3 +167,17 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate {//note
         return true
     }
 }
+
+
+
+//change the status bar color (safearea)
+//extension UIApplication {
+//
+//    //        UIApplication.shared.statusBarView?.backgroundColor = UIColor.green
+//
+//    //change the status bar safe area
+//    var statusBarView: UIView? {
+//        return value(forKey: "statusBar") as? UIView
+//    }
+//
+//}

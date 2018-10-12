@@ -18,7 +18,8 @@ class MessagesController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
         
@@ -29,8 +30,6 @@ class MessagesController: UITableViewController {
         
         tableView.register(UserCell.self, forCellReuseIdentifier: cellId)
         
-        observeMessages()
-        
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -39,6 +38,24 @@ class MessagesController: UITableViewController {
     //height for every row
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 72
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        let message = messages[indexPath.row]
+//        print(message.text, message.toId, message.fromId)
+        
+        guard let chatPartnerId = message.chatPartnerId() else { return}
+        let ref = Database.database().reference().child("users").child(chatPartnerId)
+        
+        ref.observeSingleEvent(of: .value, with: { (snapshot) in
+//            print(snapshot)
+            guard let dictionary = snapshot.value as? [String:AnyObject] else{return}
+            let user = User(name: dictionary["name"] as! String, email: dictionary["email"] as! String, profileImageUrl: dictionary["profileImageUrl"] as! String)
+            user.id = chatPartnerId
+            self.showChatControllerForUser(user: user)
+        }, withCancel: nil)
+        
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -52,40 +69,49 @@ class MessagesController: UITableViewController {
         return cell
     }
     
-    func observeMessages(){
+    func observeUserMessages(){
         
-        let ref = Database.database().reference().child("messages")
+        guard let uid = Auth.auth().currentUser?.uid else {return}
+        
+        let ref = Database.database().reference().child("user-messages").child(uid)
+        
         ref.observe(.childAdded, with: { (snapshot) in
-            
-            if let dictionary = snapshot.value as? [String:AnyObject]{
-                if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
-                    
-                    let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
-//                    self.messages.append(message)
-                    if let toId = message.toId{
-                        self.messagesDictionary[toId] = message
-                        
-                        self.messages = Array(self.messagesDictionary.values)
-                        self.messages.sort(by: { (message1, message2) -> Bool in
-                            
-                            if let message1Timestamp = message1.timestamp, let message2Timestamp = message2.timestamp{
-                                let t1 = (message1Timestamp as NSString).doubleValue
-                                let t2 = (message2Timestamp as NSString).doubleValue
-                                return t1 > t2
-                            }
-                            return false
-                        })
-                    }
-                    
-                    self.tableView.reloadData()
-                    }
-                
-            }
-            
 //            print(snapshot)
+            let messageId = snapshot.key
+            let messageReference = Database.database().reference().child("messages").child(messageId)
+            
+            messageReference.observeSingleEvent(of: .value, with: { (snapshot) in
+                
+                if let dictionary = snapshot.value as? [String:AnyObject]{
+                    if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
+                        
+                        let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
+                        
+                        if let toId = message.toId{
+                            self.messagesDictionary[toId] = message
+                            
+                            self.messages = Array(self.messagesDictionary.values)
+                            self.messages.sort(by: { (message1, message2) -> Bool in
+                                
+                                if let message1Timestamp = message1.timestamp, let message2Timestamp = message2.timestamp{
+                                    let t1 = (message1Timestamp as NSString).doubleValue
+                                    let t2 = (message2Timestamp as NSString).doubleValue
+                                    return t1 > t2
+                                }
+                                return false
+                            })
+                        }
+                        self.tableView.reloadData()
+                    }
+                    
+                }
+                
+            }, withCancel: nil)
+            
             
         }, withCancel: nil)
     }
+    
     
     func checkIfUserIsLoggedIn(){
         
@@ -107,7 +133,7 @@ class MessagesController: UITableViewController {
             //                print(snapshot)
             if let dictionary = snapshot.value as? [String:AnyObject] {
                 
-                let user = User(name: dictionary["name"] as! String, email: dictionary["email"] as! String, profileImageUrl: dictionary["profileImageUrl"] as? String)
+                let user = User(name: dictionary["name"] as! String, email: dictionary["email"] as! String, profileImageUrl: dictionary["profileImageUrl"] as! String)
                 self.setupNavBarWithUser(user: user)
                 
 //                self.navigationItem.title = dictionary["name"] as? String
@@ -121,8 +147,11 @@ class MessagesController: UITableViewController {
     //present profile image and user name
     func setupNavBarWithUser(user: User){
 
-//        self.navigationItem.title = user.name
-
+        messages.removeAll()
+        messagesDictionary.removeAll()
+        tableView.reloadData()
+        observeUserMessages()
+        
         let titleView = UIView()
         titleView.frame = CGRect(x: 0, y: 0, width: 200, height: 40)
 
@@ -138,9 +167,7 @@ class MessagesController: UITableViewController {
         profileImageView.clipsToBounds = true
         titleView.addSubview(profileImageView)//containerView
 
-        if let profileImageUrl = user.profileImageUrl{
-            profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
-        }
+        profileImageView.loadImageUsingCacheWithUrlString(urlString: user.profileImageUrl)
 
         let constraints = [
             profileImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),

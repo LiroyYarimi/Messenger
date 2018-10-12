@@ -164,7 +164,7 @@ extension LoginController : UIImagePickerControllerDelegate, UINavigationControl
             
 //            self.messagesController?.fetchUserAndSetupNavBarTitle()
 //            self.messagesController?.navigationItem.title = values["name"]
-            let user = User(name: values["name"] as! String, email: values["email"] as! String, profileImageUrl: values["profileImageUrl"] as? String)
+            let user = User(name: values["name"] as! String, email: values["email"] as! String, profileImageUrl: values["profileImageUrl"] as! String)
             self.self.messagesController?.setupNavBarWithUser(user: user)
             
             self.dismiss(animated: true, completion: nil)

@@ -13,23 +13,7 @@ class UserCell: UITableViewCell {
     
     var message: Message?{
         didSet{
-            if let toId = message?.toId{
-                let ref = Database.database().reference().child("users").child(toId)
-                ref.observeSingleEvent(of: .value, with: { (snapshot) in
-                    //                print(snapshot)
-                    
-                    if let dictionary = snapshot.value as? [String:AnyObject]{
-                        self.textLabel?.text = dictionary["name"] as? String
-                        
-                        if let profileImageUrl = dictionary["profileImageUrl"] as? String{
-                            self.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
-                        }
-                    }
-                    
-                    
-                }, withCancel: nil)
-                
-            }
+            setupNameAndProfileImage()
             
             detailTextLabel?.text = message?.text
             
@@ -60,7 +44,7 @@ class UserCell: UITableViewCell {
     
     let timeLabel: UILabel = {
         let label = UILabel()
-        label.text = "HH:MM:SS"
+//        label.text = "HH:MM:SS"
         label.font = UIFont.systemFont(ofSize: 13)
         label.textColor = .lightGray
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -93,6 +77,28 @@ class UserCell: UITableViewCell {
         
         
         
+    }
+    
+    private func setupNameAndProfileImage(){
+    
+        
+        
+        if let id = message?.chatPartnerId(){
+            let ref = Database.database().reference().child("users").child(id)
+            ref.observeSingleEvent(of: .value, with: { (snapshot) in
+                
+                if let dictionary = snapshot.value as? [String:AnyObject]{
+                    self.textLabel?.text = dictionary["name"] as? String
+                    
+                    if let profileImageUrl = dictionary["profileImageUrl"] as? String{
+                        self.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+                    }
+                }
+                
+                
+            }, withCancel: nil)
+            
+        }
     }
     
     override func layoutSubviews() {
