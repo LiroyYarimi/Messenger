@@ -15,11 +15,10 @@ class MessagesController: UITableViewController {
     
     var messages = [Message]()
     var messagesDictionary = [String:Message]()
+    var timer: Timer?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Logout", style: .plain, target: self, action: #selector(handleLogout))
         
@@ -43,7 +42,6 @@ class MessagesController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         let message = messages[indexPath.row]
-//        print(message.text, message.toId, message.fromId)
         
         guard let chatPartnerId = message.chatPartnerId() else { return}
         let ref = Database.database().reference().child("users").child(chatPartnerId)
@@ -71,7 +69,7 @@ class MessagesController: UITableViewController {
     
     func observeUserMessages(){
         
-        guard let uid = Auth.auth().currentUser?.uid else {return}
+        guard let uid = Auth.auth().currentUser?.uid else {return} //user-message id
         
         let ref = Database.database().reference().child("user-messages").child(uid)
         
@@ -83,12 +81,13 @@ class MessagesController: UITableViewController {
             messageReference.observeSingleEvent(of: .value, with: { (snapshot) in
                 
                 if let dictionary = snapshot.value as? [String:AnyObject]{
+                    
                     if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
                         
                         let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
                         
-                        if let toId = message.toId{
-                            self.messagesDictionary[toId] = message
+                        if let chatPartnerId = message.chatPartnerId(){
+                            self.messagesDictionary[chatPartnerId] = message
                             
                             self.messages = Array(self.messagesDictionary.values)
                             self.messages.sort(by: { (message1, message2) -> Bool in
@@ -101,7 +100,12 @@ class MessagesController: UITableViewController {
                                 return false
                             })
                         }
-                        self.tableView.reloadData()
+//                        print("reload table")
+//                        self.tableView.reloadData()
+                        
+                        self.timer?.invalidate()//cancel the timer
+                        self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)//after 0.1 second, call the function handleReloadTable()
+                        //but because we keep cancel the timer, we call the function only one time, at the end of the last message that we reload
                     }
                     
                 }
@@ -112,6 +116,11 @@ class MessagesController: UITableViewController {
         }, withCancel: nil)
     }
     
+    //when the timer end it call this function
+    @objc func handleReloadTable(){
+        self.tableView.reloadData()//now this is call only one time!
+//        print("reload table")
+    }
     
     func checkIfUserIsLoggedIn(){
         
@@ -171,7 +180,7 @@ class MessagesController: UITableViewController {
 
         let constraints = [
             profileImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),
-            profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
+            profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor, constant: -4),
             //this two constraints is the reason why the addGestureRecognizer doesn't work before (it was before equalToConstant: 40 )
             profileImageView.widthAnchor.constraint(equalTo: titleView.heightAnchor),
             profileImageView.heightAnchor.constraint(equalTo: titleView.heightAnchor)

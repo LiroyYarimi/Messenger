@@ -24,14 +24,8 @@ class Message {
     }
     
     func chatPartnerId() -> String?{
-        
+//        print(Auth.auth().currentUser?.uid)
         return fromId == Auth.auth().currentUser?.uid ? toId : fromId
-        
-//        if fromId == Auth.auth().currentUser?.uid{
-//            return toId
-//        }else{
-//            return fromId
-//        }
     }
 
 }

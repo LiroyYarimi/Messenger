@@ -34,6 +34,8 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        collectionView.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 58, right: 0)//make a 8 pixel space between the bubble and the top view
+        collectionView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: 50, right: 0)//change the scroll size
         collectionView.alwaysBounceVertical = true //make it dragable
         collectionView.backgroundColor = .white
         collectionView.register(ChatMessageCell.self, forCellWithReuseIdentifier: cellId)
@@ -48,11 +50,60 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
 //        cell.backgroundColor = .blue
         let message = messages[indexPath.row]
         cell.textView.text = message.text
+        
+        setupCell(cell: cell, message: message)
+        
+        //change bubble view width to the text width size
+        cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
+        
         return cell
     }
     
+    private func setupCell(cell: ChatMessageCell, message: Message){
+        
+        if let profileImageUrl = self.user?.profileImageUrl{
+            cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+        }
+        
+        if message.fromId == Auth.auth().currentUser?.uid {
+            //outcoming blue bubble
+            cell.bubbleView.backgroundColor = ChatMessageCell.blueColor
+            cell.textView.textColor = .white
+            cell.profileImageView.isHidden = true
+            cell.bubbleTrailingAnchor?.isActive = true
+            cell.bubbleLeadingAnchor?.isActive = false
+        }else{
+            //incoming gray bubble
+            cell.bubbleView.backgroundColor = UIColor.rgb(red: 240, green: 240, blue: 240)
+            cell.textView.textColor = .black
+            cell.profileImageView.isHidden = false
+            cell.bubbleTrailingAnchor?.isActive = false
+            cell.bubbleLeadingAnchor?.isActive = true
+        }
+    }
+    
+    //this function call every time the size of the view change (lancscape)
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return CGSize(width: view.frame.width, height: 80)
+        
+        var height : CGFloat = 80
+        if let text = messages[indexPath.row].text{
+            height = estimateFrameForText(text: text).height + 20
+        }
+        
+        return CGSize(width: view.frame.width, height: height)
+    }
+    
+    //colculate the height size for each bubble
+    private func estimateFrameForText(text: String) -> CGRect {
+        
+        let size = CGSize(width: 250, height: 1000)
+        let options = NSStringDrawingOptions.usesFontLeading.union(.usesLineFragmentOrigin)
+        return NSString(string: text).boundingRect(with: size, options: options, attributes: [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 16)], context: nil)
+        
     }
     
     func observeMessages(){
@@ -87,9 +138,9 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
         let containerViewConstraints = [
             containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),//safeAreaLayoutGuide
+            containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),//safeAreaLayoutGuide
             containerView.widthAnchor.constraint(equalTo: view.widthAnchor),
-            containerView.heightAnchor.constraint(equalToConstant: 60)
+            containerView.heightAnchor.constraint(equalToConstant: 50)
         ]
         NSLayoutConstraint.activate(containerViewConstraints)
         
@@ -150,6 +201,8 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
                 print(error!)
                 return
             }
+            self.inputTextField.text = nil
+            
             let userMessagesRef = Database.database().reference().child("user-messages").child(fromId)
             
             let messageId = childRef.key
@@ -158,7 +211,7 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
             let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId)
             recipientUserMessagesRef.updateChildValues([messageId: 1])
          }
-        inputTextField.text = ""
+        
     }
     
     //this func call when user press on "Enter" button
@@ -167,17 +220,3 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         return true
     }
 }
-
-
-
-//change the status bar color (safearea)
-//extension UIApplication {
-//
-//    //        UIApplication.shared.statusBarView?.backgroundColor = UIColor.green
-//
-//    //change the status bar safe area
-//    var statusBarView: UIView? {
-//        return value(forKey: "statusBar") as? UIView
-//    }
-//
-//}

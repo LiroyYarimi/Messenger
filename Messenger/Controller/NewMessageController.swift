@@ -9,13 +9,30 @@
 import UIKit
 import Firebase
 
-class NewMessageController: UITableViewController {
+class NewMessageController: UITableViewController , UISearchBarDelegate{
     
     let cellId = "cellId"
     var users = [User]()
+    
+    var usersToPresent = [User]()
+    
+//    //add a search bar
+//    let searchBar:UISearchBar = {
+//        let search = UISearchBar()
+//        search.searchBarStyle = UISearchBar.Style.prominent
+//        search.placeholder = " Search..."
+//        search.sizeToFit()
+//        search.isTranslucent = false
+//        search.backgroundImage = UIImage()
+//
+//        return search
+//    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+//        searchBar.delegate = self
+//        view.addSubview(searchBar)
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(handleCancel))
         
