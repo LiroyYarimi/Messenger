@@ -56,7 +56,7 @@ class ChatMessageCell: UICollectionViewCell {
         
         bubbleWidthAnchor = bubbleView.widthAnchor.constraint(equalToConstant: 250)
         bubbleWidthAnchor?.isActive = true
-        bubbleTrailingAnchor = bubbleView.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -8)
+        bubbleTrailingAnchor = bubbleView.trailingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.trailingAnchor, constant: -8)
         bubbleTrailingAnchor?.isActive = true
         bubbleLeadingAnchor = bubbleView.leadingAnchor.constraint(equalTo: profileImageView.trailingAnchor, constant: 8)
         bubbleLeadingAnchor?.isActive = false
@@ -64,7 +64,7 @@ class ChatMessageCell: UICollectionViewCell {
         
         let constraints = [
             
-            profileImageView.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 8),
+            profileImageView.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor, constant: 8),
             profileImageView.bottomAnchor.constraint(equalTo: self.bottomAnchor),
             profileImageView.widthAnchor.constraint(equalToConstant: 32),
             profileImageView.heightAnchor.constraint(equalToConstant: 32),
