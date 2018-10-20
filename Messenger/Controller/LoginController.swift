@@ -9,7 +9,7 @@
 import UIKit
 import Firebase
 
-class LoginController: UIViewController {
+class LoginController: UIViewController , UITextFieldDelegate{
     
     //MARK: - Properties initialization
     
@@ -65,11 +65,12 @@ class LoginController: UIViewController {
         return view
     }()
     
-    let passwordTextField : UITextField = {
+    lazy var passwordTextField : UITextField = {
         let tf = UITextField()
         tf.placeholder = "Password"
         tf.isSecureTextEntry = true
         tf.translatesAutoresizingMaskIntoConstraints = false
+        tf.delegate = self
         return tf
     }()
     
@@ -94,6 +95,13 @@ class LoginController: UIViewController {
         return sc
     }()
     
+    //this func call when user press on "Enter" button on the password
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+//        print("handleLoginRegister")
+        handleLoginRegister()
+        return true
+    }
+    
     
     //MARK: - Main - viewDidLoad
 
@@ -108,6 +116,7 @@ class LoginController: UIViewController {
         view.addSubview(loginRegisterButton)
         view.addSubview(profileImageView)
         view.addSubview(loginRegisterSegmentedControl)
+//        .keyboardDismissMode = .interactive
         
         setupInputsContainerView()
         setupLoginRegisterButton()
@@ -115,6 +124,7 @@ class LoginController: UIViewController {
         setupLoginRegisterSegmentedControl()
         
     }
+
     
     //MARK: - handle functions
     //in the "LoginController+handlers" file

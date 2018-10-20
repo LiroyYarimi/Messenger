@@ -75,45 +75,78 @@ class MessagesController: UITableViewController {
         
         ref.observe(.childAdded, with: { (snapshot) in
 //            print(snapshot)
-            let messageId = snapshot.key
-            let messageReference = Database.database().reference().child("messages").child(messageId)
-            
-            messageReference.observeSingleEvent(of: .value, with: { (snapshot) in
+            let userId = snapshot.key
+            Database.database().reference().child("user-messages").child(uid).child(userId).observe(.childAdded, with: { (snapshot) in
+//                print(snapshot)
                 
-                if let dictionary = snapshot.value as? [String:AnyObject]{
-                    
-                    if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String, let text = dictionary["text"] as? String{
-                        
-                        let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId)
-                        
-                        if let chatPartnerId = message.chatPartnerId(){
-                            self.messagesDictionary[chatPartnerId] = message
-                            
-                            self.messages = Array(self.messagesDictionary.values)
-                            self.messages.sort(by: { (message1, message2) -> Bool in
-                                
-                                if let message1Timestamp = message1.timestamp, let message2Timestamp = message2.timestamp{
-                                    let t1 = (message1Timestamp as NSString).doubleValue
-                                    let t2 = (message2Timestamp as NSString).doubleValue
-                                    return t1 > t2
-                                }
-                                return false
-                            })
-                        }
-//                        print("reload table")
-//                        self.tableView.reloadData()
-                        
-                        self.timer?.invalidate()//cancel the timer
-                        self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)//after 0.1 second, call the function handleReloadTable()
-                        //but because we keep cancel the timer, we call the function only one time, at the end of the last message that we reload
-                    }
-                    
-                }
+                let messageId = snapshot.key
+                
+                self.fetchMessageWithMessageId(messageId: messageId)
                 
             }, withCancel: nil)
             
             
+//
+            
         }, withCancel: nil)
+    }
+    
+    private func fetchMessageWithMessageId(messageId: String){
+        let messageReference = Database.database().reference().child("messages").child(messageId)
+        
+        messageReference.observeSingleEvent(of: .value, with: { (snapshot) in
+            
+            if let dictionary = snapshot.value as? [String:AnyObject]{
+                
+                //--
+                let message = Message(dictionary: dictionary)
+                if let chatPartnerId = message.chatPartnerId(){
+                    self.messagesDictionary[chatPartnerId] = message
+                    
+                }
+                
+                self.attemptReloadOfTable()
+                //--
+//                if let fromId = dictionary["fromId"] as? String, let toId = dictionary["toId"] as? String, let timestamp = dictionary["timestamp"] as? String{
+//
+//                    let imageUrl = dictionary["imageUrl"] as? String
+//                    let text = dictionary["text"] as? String
+//                    let imageWidth = dictionary["imageWidth"] as? Int
+//                    let imageHeight = dictionary["imageHeight"] as? Int
+//
+//                    let message = Message(fromId: fromId, text: text, timestamp: timestamp, toId: toId, imageUrl: imageUrl, imageHeight: imageHeight, imageWidth: imageWidth)
+//
+//                    if let chatPartnerId = message.chatPartnerId(){
+//                        self.messagesDictionary[chatPartnerId] = message
+//
+//                    }
+//
+//                    self.attemptReloadOfTable()
+//
+//                }
+                
+            }
+            
+        }, withCancel: nil)
+    }
+    
+    private func attemptReloadOfTable(){
+        
+        //we want to add the messages only when we need to reload the table view
+        self.messages = Array(self.messagesDictionary.values)
+        self.messages.sort(by: { (message1, message2) -> Bool in
+            
+            if let message1Timestamp = message1.timestamp, let message2Timestamp = message2.timestamp{
+                let t1 = (message1Timestamp as NSString).doubleValue
+                let t2 = (message2Timestamp as NSString).doubleValue
+                return t1 > t2
+            }
+            return false
+        })
+        
+        self.timer?.invalidate()//cancel the timer
+        self.timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: #selector(self.handleReloadTable), userInfo: nil, repeats: false)//after 0.1 second, call the function handleReloadTable()
+        //but because we keep cancel the timer, we call the function only one time, at the end of the last message that we reload
     }
     
     //when the timer end it call this function
@@ -180,10 +213,12 @@ class MessagesController: UITableViewController {
 
         let constraints = [
             profileImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),
-            profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor, constant: -4),
+            profileImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
             //this two constraints is the reason why the addGestureRecognizer doesn't work before (it was before equalToConstant: 40 )
-            profileImageView.widthAnchor.constraint(equalTo: titleView.heightAnchor),
-            profileImageView.heightAnchor.constraint(equalTo: titleView.heightAnchor)
+//            profileImageView.widthAnchor.constraint(equalTo: titleView.heightAnchor),
+//            profileImageView.heightAnchor.constraint(equalTo: titleView.heightAnchor)
+            profileImageView.widthAnchor.constraint(equalToConstant: 40),
+            profileImageView.heightAnchor.constraint(equalToConstant: 40)
         ]
         NSLayoutConstraint.activate(constraints)
 //

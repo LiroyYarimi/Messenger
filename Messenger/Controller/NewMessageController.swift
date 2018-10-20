@@ -95,7 +95,7 @@ class NewMessageController: UITableViewController , UISearchBarDelegate{
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         dismiss(animated: true) {
-            print("dismiss")
+//            print("dismiss")
             let user = self.users[indexPath.row]
             self.messagesController?.showChatControllerForUser(user: user)
         }

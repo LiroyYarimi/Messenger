@@ -16,11 +16,29 @@ class Message {
     var timestamp: String?
     var toId: String?
     
-    init(fromId: String?, text: String?, timestamp: String?, toId: String?){
-        self.fromId = fromId
-        self.text = text
-        self.timestamp = timestamp
-        self.toId = toId
+    var imageUrl: String?
+    var imageHeight: Int?
+    var imageWidth: Int?
+    
+//    init(fromId: String?, text: String?, timestamp: String?, toId: String?, imageUrl: String?, imageHeight: Int?, imageWidth: Int?){
+//        self.fromId = fromId
+//        self.text = text
+//        self.timestamp = timestamp
+//        self.toId = toId
+//        self.imageUrl = imageUrl
+//        self.imageWidth = imageWidth
+//        self.imageHeight = imageHeight
+//    }
+    
+    init(dictionary: [String:AnyObject]) {
+        fromId = dictionary["fromId"] as? String
+        toId = dictionary["toId"] as? String
+        timestamp = dictionary["timestamp"] as? String
+        text = dictionary["text"] as? String
+        imageUrl = dictionary["imageUrl"] as? String
+        imageWidth = dictionary["imageWidth"] as? Int
+        imageHeight = dictionary["imageHeight"] as? Int
+        
     }
     
     func chatPartnerId() -> String?{

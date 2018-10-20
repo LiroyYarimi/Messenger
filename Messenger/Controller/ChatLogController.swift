@@ -9,11 +9,12 @@
 import UIKit
 import Firebase
 
-class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICollectionViewDelegateFlowLayout{//notes is UIViewController (and not UITableViewController)
+class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate{//notes is UIViewController (and not UITableViewController)
     
     let cellId = "cellId"
     var messages = [Message]()
     var containerViewBottomAnchor: NSLayoutConstraint?
+    let bubbleWidthForImageMessage : CGFloat = 250
     
     var user: User?{
         didSet{
@@ -44,17 +45,30 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
         collectionView.keyboardDismissMode = .interactive //dismiss the keyboard by scroll
         
-//        setupInputComponents()
-//
-//        setupKeyboardObservers()
+//        setupKeyboardObservers()//doesnt work..
     }
     
     //MARK:- create a input container view that will place always(!) on top of the keyboard
     
     lazy var inputContainerView: UIView = {
         let containerView = UIView()
-        containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 50)
+        containerView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 60)
         containerView.backgroundColor = .white
+        
+        //create image button
+        let uploadImageView = UIImageView()
+        uploadImageView.image = UIImage(named: "upload_image_icon")
+        uploadImageView.translatesAutoresizingMaskIntoConstraints = false
+        uploadImageView.isUserInteractionEnabled = true
+        uploadImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleUploadTap)))
+        containerView.addSubview(uploadImageView)
+        let uploadImageViewConstraints = [
+            uploadImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            uploadImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            uploadImageView.widthAnchor.constraint(equalToConstant: 44),
+            uploadImageView.heightAnchor.constraint(equalToConstant: 44)
+        ]
+        NSLayoutConstraint.activate(uploadImageViewConstraints)
         
         //create sent button
         let sendButton = UIButton(type: .system)
@@ -75,7 +89,7 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         containerView.addSubview(inputTextField)
         
         let inputTextFieldConstarints = [
-            inputTextField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
+            inputTextField.leadingAnchor.constraint(equalTo: uploadImageView.trailingAnchor, constant: 8),
             inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
             inputTextField.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor),
             inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor)
@@ -98,6 +112,9 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
         return containerView
     }()
+    
+    
+    
     
     override var inputAccessoryView: UIView?{
         get{
@@ -123,7 +140,13 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         setupCell(cell: cell, message: message)
         
         //change bubble view width to the text width size
-        cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: message.text!).width + 32
+        if let text = message.text{
+            cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+        }else if message.imageUrl != nil{
+            //fall in here if it's image message
+            cell.bubbleWidthAnchor?.constant = bubbleWidthForImageMessage
+        }
+        
         
         return cell
     }
@@ -132,6 +155,14 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
         if let profileImageUrl = self.user?.profileImageUrl{
             cell.profileImageView.loadImageUsingCacheWithUrlString(urlString: profileImageUrl)
+        }
+        
+        if let messageImageUrl = message.imageUrl{
+            cell.messageImageView.loadImageUsingCacheWithUrlString(urlString: messageImageUrl)
+            cell.messageImageView.isHidden = false
+            cell.bubbleView.backgroundColor = .clear
+        }else{
+            cell.messageImageView.isHidden = true
         }
         
         if message.fromId == Auth.auth().currentUser?.uid {
@@ -151,7 +182,7 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         }
     }
     
-    //this function call every time the size of the view change (lancscape)
+    //this function call every time the size of the view change (lancscape rotate)
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         collectionView.collectionViewLayout.invalidateLayout()
     }
@@ -159,8 +190,13 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         
         var height : CGFloat = 80
-        if let text = messages[indexPath.row].text{
+        
+        let message = messages[indexPath.row]
+        if let text = message.text{
             height = estimateFrameForText(text: text).height + 20
+        }else if let imageHeight = message.imageHeight, let imageWidth = message.imageWidth {
+            
+            height = CGFloat(imageHeight) / CGFloat(imageWidth) * bubbleWidthForImageMessage
         }
         
         return CGSize(width: view.frame.width, height: height)
@@ -177,9 +213,10 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     
     func observeMessages(){
         
-        guard let uid = Auth.auth().currentUser?.uid else {return}
+        guard let uid = Auth.auth().currentUser?.uid, let toId = user?.id else {return}
         
-        let userMessagesRef = Database.database().reference().child("user-messages").child(uid)
+        let userMessagesRef = Database.database().reference().child("user-messages").child(uid).child(toId)
+        
         userMessagesRef.observe(.childAdded, with: { (snapshot) in
 //            print(snapshot)
             let messageId = snapshot.key
@@ -187,43 +224,19 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
             messagesRef.observeSingleEvent(of: .value, with: { (snapshot) in
 //                print(snapshot)
                 guard let dictionary = snapshot.value as? [String:AnyObject] else {return}
-                let message = Message(fromId: dictionary["fromId"] as? String, text: dictionary["text"] as? String, timestamp: dictionary["timestamp"] as? String, toId: dictionary["toId"] as? String)
-                if message.chatPartnerId() == self.user?.id{
-                    self.messages.append(message)
-                    self.collectionView.reloadData()
-                }
+                //--
+                let message = Message(dictionary: dictionary)
+                self.messages.append(message)
+                self.collectionView.reloadData()
+                //scroll to the last index
+                let indexPath = IndexPath(item: self.messages.count - 1, section: 0)
+                self.collectionView.scrollToItem(at: indexPath, at: .bottom, animated: true)
                 
             }, withCancel: nil)
         }, withCancel: nil)
     }
     
-    @objc func handleSendButton(){
-        
-        let ref = Database.database().reference().child("messages")
-        let childRef = ref.childByAutoId()//create list of messages
-        let toId = user!.id!
-        let fromId = Auth.auth().currentUser!.uid
-        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
-        let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
-        //        childRef.updateChildValues(values)
-        
-        childRef.updateChildValues(values){ (error, ref) in
-            if error != nil{
-                print(error!)
-                return
-            }
-            self.inputTextField.text = nil
-            
-            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId)
-            
-            let messageId = childRef.key
-            userMessagesRef.updateChildValues([messageId: 1])
-            
-            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId)
-            recipientUserMessagesRef.updateChildValues([messageId: 1])
-        }
-        
-    }
+    
     
     //this func call when user press on "Enter" button
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -231,75 +244,25 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         return true
     }
     
-//    func setupInputComponents(){
-//
-//        let containerView = UIView()
-//        containerView.backgroundColor = .white
-//        containerView.translatesAutoresizingMaskIntoConstraints = false
-//        view.addSubview(containerView)
-//
-//        containerViewBottomAnchor = containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)//safeAreaLayoutGuide
-//        containerViewBottomAnchor?.isActive = true
-//
-//        let containerViewConstraints = [
-//            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-//            containerView.widthAnchor.constraint(equalTo: view.widthAnchor),
-//            containerView.heightAnchor.constraint(equalToConstant: 50)
-//        ]
-//        NSLayoutConstraint.activate(containerViewConstraints)
-//
-////        //create sent button
-////        let sendButton = UIButton(type: .system)
-////        sendButton.setTitle("Send", for: .normal)
-////        sendButton.translatesAutoresizingMaskIntoConstraints = false
-////        sendButton.addTarget(self, action: #selector(handleSendButton), for: .touchUpInside)
-////        containerView.addSubview(sendButton)
-////
-////        let sendButtonConstraints = [
-////            sendButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-////            sendButton.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-////            sendButton.widthAnchor.constraint(equalToConstant: 80),
-////            sendButton.heightAnchor.constraint(equalTo: containerView.heightAnchor)
-////        ]
-////        NSLayoutConstraint.activate(sendButtonConstraints)
-////
-////        //create text field is outside (on the top)
-////        containerView.addSubview(inputTextField)
-////
-////        let inputTextFieldConstarints = [
-////            inputTextField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
-////            inputTextField.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-////            inputTextField.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor),
-////            inputTextField.heightAnchor.constraint(equalTo: containerView.heightAnchor)
-////        ]
-////        NSLayoutConstraint.activate(inputTextFieldConstarints)
-////
-////        //create separator line
-////        let separatorLineView = UIView()
-////        separatorLineView.backgroundColor = UIColor.rgb(red: 220, green: 220, blue: 220)
-////        separatorLineView.translatesAutoresizingMaskIntoConstraints = false
-////        containerView.addSubview(separatorLineView)
-////
-////        let separatorLineViewConstarints = [
-////            separatorLineView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-////            separatorLineView.topAnchor.constraint(equalTo: containerView.topAnchor),
-////            separatorLineView.widthAnchor.constraint(equalTo: containerView.widthAnchor),
-////            separatorLineView.heightAnchor.constraint(equalToConstant: 1)
-////        ]
-////        NSLayoutConstraint.activate(separatorLineViewConstarints)
-//    }
-    
     
     
     
     //MARK:- second way to fix the keyboard
     
     func setupKeyboardObservers(){
+        if messages.count > 0{
+            NotificationCenter.default.addObserver(self, selector: #selector(handleKayboardDidShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        }
         
-        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
         
         //        NotificationCenter.default.addObserver(self, selector: #selector(handleKeyboardWillShow), name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+    }
+    @objc func handleKayboardDidShow(){
+        
+        let indexPath = IndexPath(item: messages.count - 1, section: 0)
+        collectionView.scrollToItem(at: indexPath, at: .top, animated: true)
     }
     
     //remove observer (on the keyboard)
@@ -338,6 +301,161 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
                 
             }
         }
+    }
+    
+    @objc func handleSendButton(){
+        
+        if self.inputTextField.text == ""{
+            return
+        }
+        let toId = user!.id!
+        let fromId = Auth.auth().currentUser!.uid
+        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
+        let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
+        //        childRef.updateChildValues(values)
+        sendMessageWithProperties(values: values)
+        
+//        let ref = Database.database().reference().child("messages")
+//        let childRef = ref.childByAutoId()//create list of messages
+//        let toId = user!.id!
+//        let fromId = Auth.auth().currentUser!.uid
+//        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
+//        let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
+//
+//        childRef.updateChildValues(values){ (error, ref) in
+//            if error != nil{
+//                print(error!)
+//                return
+//            }
+//            self.inputTextField.text = nil
+//
+//            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
+//
+//            let messageId = childRef.key
+//            userMessagesRef.updateChildValues([messageId: 1])
+//
+//            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
+//            recipientUserMessagesRef.updateChildValues([messageId: 1])
+//        }
+        
+    }
+    
+    private func sendMessageWithProperties(values: [String:Any]){
+        
+        
+        let ref = Database.database().reference().child("messages")
+        let childRef = ref.childByAutoId()//create list of messages
+        let toId = user!.id!
+        let fromId = Auth.auth().currentUser!.uid
+        
+        childRef.updateChildValues(values){ (error, ref) in
+            if error != nil{
+                print(error!)
+                return
+            }
+            self.inputTextField.text = nil
+            
+            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
+            
+            let messageId = childRef.key
+            userMessagesRef.updateChildValues([messageId: 1])
+            
+            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
+            recipientUserMessagesRef.updateChildValues([messageId: 1])
+        }
+    }
+    
+    
+    //MARK:- handle image picker
+    
+    //image picker
+    @objc func handleUploadTap(){
+        let imagePickerController = UIImagePickerController()
+        imagePickerController.delegate = self
+        imagePickerController.allowsEditing = true
+        
+        present(imagePickerController, animated: true, completion: nil)
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        
+        var selectedImageFromPicker: UIImage?
+        
+        if let editedImage = info[.editedImage] as? UIImage{
+            selectedImageFromPicker = editedImage
+        }else if let originalImage = info[.originalImage] as? UIImage {
+            selectedImageFromPicker = originalImage
+        }
+        
+        if let selectedImage = selectedImageFromPicker{
+            uploadToFirebaseStorageUsingImage(image: selectedImage)
+        }
+        
+        dismiss(animated: true, completion: nil)
+    }
+    
+    private func uploadToFirebaseStorageUsingImage(image: UIImage){
+        
+        let imageName = NSUUID().uuidString// unique string
+        let storageRef = Storage.storage().reference().child("message_images").child(imageName)
+        
+        if let uploadData = image.jpegData(compressionQuality: 0.2){
+            storageRef.putData(uploadData, metadata: nil) { (metadata, error) in
+                if error != nil{
+                    print("Failed to upload image:", error!)
+                    return
+                }
+                storageRef.downloadURL(completion: { (url, err) in
+                    if err != nil{
+                        print(err!)
+                        return
+                    }
+                    
+                    if let imageUrl = url?.absoluteString{
+                        self.sendMessageWithImageUrl(imageUrl: imageUrl, image: image)
+                    }
+                })
+            }
+        }
+        
+        
+    }
+    
+    private func sendMessageWithImageUrl(imageUrl: String, image: UIImage){
+        
+        let toId = user!.id!
+        let fromId = Auth.auth().currentUser!.uid
+        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
+        let values = ["toId": toId, "fromId": fromId, "timestamp": "\(timestamp)","imageUrl" : imageUrl, "imageWidth": image.size.width, "imageHeight": image.size.height] as [String : Any]
+        sendMessageWithProperties(values: values)
+
+        
+//        let ref = Database.database().reference().child("messages")
+//        let childRef = ref.childByAutoId()//create list of messages
+//        let toId = user!.id!
+//        let fromId = Auth.auth().currentUser!.uid
+//        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
+//        let values = ["toId": toId, "fromId": fromId, "timestamp": "\(timestamp)","imageUrl" : imageUrl, "imageWidth": image.size.width, "imageHeight": image.size.height] as [String : Any]
+//
+//        childRef.updateChildValues(values){ (error, ref) in
+//            if error != nil{
+//                print(error!)
+//                return
+//            }
+//            self.inputTextField.text = nil
+//
+//            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
+//
+//            let messageId = childRef.key
+//            userMessagesRef.updateChildValues([messageId: 1])
+//
+//            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
+//            recipientUserMessagesRef.updateChildValues([messageId: 1])
+//        }
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        dismiss(animated: true, completion: nil)
     }
 }
 
