@@ -133,6 +133,9 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     }
     override func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: cellId, for: indexPath) as! ChatMessageCell
+        
+        cell.chatLogController = self
+        
 //        cell.backgroundColor = .blue
         let message = messages[indexPath.row]
         cell.textView.text = message.text
@@ -141,10 +144,13 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
         //change bubble view width to the text width size
         if let text = message.text{
+            //a text message
             cell.bubbleWidthAnchor?.constant = estimateFrameForText(text: text).width + 32
+            cell.textView.isHidden = false
         }else if message.imageUrl != nil{
             //fall in here if it's image message
             cell.bubbleWidthAnchor?.constant = bubbleWidthForImageMessage
+            cell.textView.isHidden = true
         }
         
         
@@ -185,6 +191,9 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     //this function call every time the size of the view change (lancscape rotate)
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         collectionView.collectionViewLayout.invalidateLayout()
+        
+//        print(UIScreen.main.bounds.width)
+//        print(UIScreen.main.bounds.height)
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -312,32 +321,7 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         let fromId = Auth.auth().currentUser!.uid
         let timestamp: Int = Int(NSDate().timeIntervalSince1970)
         let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
-        //        childRef.updateChildValues(values)
         sendMessageWithProperties(values: values)
-        
-//        let ref = Database.database().reference().child("messages")
-//        let childRef = ref.childByAutoId()//create list of messages
-//        let toId = user!.id!
-//        let fromId = Auth.auth().currentUser!.uid
-//        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
-//        let values = ["text" : inputTextField.text!, "toId": toId, "fromId": fromId, "timestamp": "\(timestamp)"]
-//
-//        childRef.updateChildValues(values){ (error, ref) in
-//            if error != nil{
-//                print(error!)
-//                return
-//            }
-//            self.inputTextField.text = nil
-//
-//            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
-//
-//            let messageId = childRef.key
-//            userMessagesRef.updateChildValues([messageId: 1])
-//
-//            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
-//            recipientUserMessagesRef.updateChildValues([messageId: 1])
-//        }
-        
     }
     
     private func sendMessageWithProperties(values: [String:Any]){
@@ -428,35 +412,116 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         let timestamp: Int = Int(NSDate().timeIntervalSince1970)
         let values = ["toId": toId, "fromId": fromId, "timestamp": "\(timestamp)","imageUrl" : imageUrl, "imageWidth": image.size.width, "imageHeight": image.size.height] as [String : Any]
         sendMessageWithProperties(values: values)
-
-        
-//        let ref = Database.database().reference().child("messages")
-//        let childRef = ref.childByAutoId()//create list of messages
-//        let toId = user!.id!
-//        let fromId = Auth.auth().currentUser!.uid
-//        let timestamp: Int = Int(NSDate().timeIntervalSince1970)
-//        let values = ["toId": toId, "fromId": fromId, "timestamp": "\(timestamp)","imageUrl" : imageUrl, "imageWidth": image.size.width, "imageHeight": image.size.height] as [String : Any]
-//
-//        childRef.updateChildValues(values){ (error, ref) in
-//            if error != nil{
-//                print(error!)
-//                return
-//            }
-//            self.inputTextField.text = nil
-//
-//            let userMessagesRef = Database.database().reference().child("user-messages").child(fromId).child(toId)
-//
-//            let messageId = childRef.key
-//            userMessagesRef.updateChildValues([messageId: 1])
-//
-//            let recipientUserMessagesRef = Database.database().reference().child("user-messages").child(toId).child(fromId)
-//            recipientUserMessagesRef.updateChildValues([messageId: 1])
-//        }
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         dismiss(animated: true, completion: nil)
     }
+    
+    //MARK:- handle zoom in for image view
+    
+    var startingFrame: CGRect?
+    var blackBackgroundView: UIView?
+//    var startingImageView: UIImageView?
+    var zoomingImageView:UIImageView?
+    
+    func performZoomInForStartingImageView(startingImageView: UIImageView){
+//        print("performZoomInForStartingImageView")
+        
+//        self.startingImageView = startingImageView
+//        self.startingImageView?.isHidden = true
+
+        startingFrame = startingImageView.superview?.convert(startingImageView.frame, to: nil)
+        if startingFrame == nil {return}
+//        print(startingFrame)
+        
+        zoomingImageView = UIImageView(frame: startingFrame!)
+        zoomingImageView?.backgroundColor = .red
+        zoomingImageView?.image = startingImageView.image
+        zoomingImageView?.isUserInteractionEnabled = true
+        zoomingImageView?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleZoomOut)))
+        
+        if let keyWindow = UIApplication.shared.keyWindow{
+            
+//            blackBackgroundView = UIView(frame: keyWindow.frame)
+            blackBackgroundView = UIView()
+            keyWindow.addSubview(blackBackgroundView!)
+            
+            blackBackgroundView?.translatesAutoresizingMaskIntoConstraints = false
+            blackBackgroundView?.leadingAnchor.constraint(equalTo: keyWindow.leadingAnchor).isActive = true
+            blackBackgroundView?.topAnchor.constraint(equalTo: keyWindow.topAnchor).isActive = true
+            blackBackgroundView?.trailingAnchor.constraint(equalTo: keyWindow.trailingAnchor).isActive = true
+            blackBackgroundView?.bottomAnchor.constraint(equalTo: keyWindow.bottomAnchor).isActive = true
+            
+            blackBackgroundView?.backgroundColor = .black
+            blackBackgroundView?.alpha = 0 //it start hidden
+//            keyWindow.addSubview(blackBackgroundView!)
+            
+            keyWindow.addSubview(zoomingImageView!)
+            zoomingImageView?.translatesAutoresizingMaskIntoConstraints = false
+//            zoomingImageView.alpha = 0
+            
+            UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseOut, animations: {
+                
+                self.blackBackgroundView?.alpha = 1
+                
+                self.inputContainerView.alpha = 0//hide the inputContainerView
+//                print(keyWindow.frame)
+                let height = self.startingFrame!.height / self.startingFrame!.width * keyWindow.frame.width
+                let width = self.startingFrame!.width / self.startingFrame!.height * keyWindow.frame.height
+                if height > keyWindow.frame.height{
+//                    print(keyWindow.frame)
+                    self.zoomingImageView?.topAnchor.constraint(equalTo: keyWindow.topAnchor).isActive = true
+                    self.zoomingImageView?.bottomAnchor.constraint(equalTo: keyWindow.bottomAnchor).isActive = true
+                    self.zoomingImageView?.centerXAnchor.constraint(equalTo: keyWindow.centerXAnchor).isActive = true
+                    self.zoomingImageView?.widthAnchor.constraint(equalToConstant: width).isActive = true
+                }else{
+//                    print(keyWindow.frame)
+                    
+                    self.zoomingImageView?.centerYAnchor.constraint(equalTo: keyWindow.centerYAnchor).isActive = true
+                    self.zoomingImageView?.leadingAnchor.constraint(equalTo: keyWindow.leadingAnchor).isActive = true
+                    self.zoomingImageView?.trailingAnchor.constraint(equalTo: keyWindow.trailingAnchor).isActive = true
+                    self.zoomingImageView?.heightAnchor.constraint(equalToConstant: height).isActive = true
+                }
+                
+                
+//                zoomingImageView.alpha = 1
+                
+//                zoomingImageView.frame = CGRect(x: 0, y: 0, width: keyWindow.frame.width, height: height)
+//
+//                zoomingImageView.center = keyWindow.center
+                
+            }) { (completed) in
+//                do nothing
+            }
+            
+        }
+        
+    }
+    
+    @objc func handleZoomOut(tapGesture: UITapGestureRecognizer){
+
+        if let zoomOutImageView = tapGesture.view{
+            
+            zoomOutImageView.layer.cornerRadius = 16
+            zoomOutImageView.clipsToBounds = true
+            
+            UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseOut, animations: {
+                
+                zoomOutImageView.frame = self.startingFrame!
+                self.blackBackgroundView?.alpha = 0
+                self.inputContainerView.alpha = 1
+                
+            }) { (completed) in
+                zoomOutImageView.removeFromSuperview()
+//                self.startingImageView?.isHidden = false
+            }
+            
+        }
+        
+        
+    }
+    
 }
 
 

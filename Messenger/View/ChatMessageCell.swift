@@ -10,6 +10,8 @@ import UIKit
 
 class ChatMessageCell: UICollectionViewCell {
     
+    var chatLogController : ChatLogController?
+    
     let textView : UITextView = {
         let tv = UITextView()
         tv.text = "bla"
@@ -19,6 +21,7 @@ class ChatMessageCell: UICollectionViewCell {
         tv.textColor = .white
         tv.isEditable = false
         tv.isScrollEnabled = false
+//        tv.backgroundColor = .yellow
         return tv
     }()
     
@@ -43,12 +46,16 @@ class ChatMessageCell: UICollectionViewCell {
         return imageView
     }()
     
-    let messageImageView: UIImageView = {
+    lazy var messageImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.layer.cornerRadius = 16
         imageView.layer.masksToBounds = true
         imageView.contentMode = .scaleAspectFill
+        
+        imageView.isUserInteractionEnabled = true
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(handleZoomTap)))
+        
         return imageView
     }()
     
@@ -95,6 +102,15 @@ class ChatMessageCell: UICollectionViewCell {
             textView.heightAnchor.constraint(equalTo: self.heightAnchor)
         ]
         NSLayoutConstraint.activate(constraints)
+    }
+    
+    @objc func handleZoomTap(tapGesture: UITapGestureRecognizer){
+//        print("handleZoomTap")
+        //PRO Tip: don't perform a lot of custom logic inside of a view class
+        
+        if let imageView = tapGesture.view as? UIImageView{
+            self.chatLogController?.performZoomInForStartingImageView(startingImageView: imageView)
+        }
     }
     
     required init?(coder aDecoder: NSCoder) {
