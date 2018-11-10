@@ -8,6 +8,8 @@
 
 import UIKit
 import Firebase
+//import MobileCoreServices
+//import AVFoundation
 
 class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICollectionViewDelegateFlowLayout, UIImagePickerControllerDelegate, UINavigationControllerDelegate{//notes is UIViewController (and not UITableViewController)
     
@@ -49,6 +51,7 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
     }
     
     //MARK:- create a input container view that will place always(!) on top of the keyboard
+    
     
     lazy var inputContainerView: UIView = {
         let containerView = UIView()
@@ -194,6 +197,26 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         
 //        print(UIScreen.main.bounds.width)
 //        print(UIScreen.main.bounds.height)
+//        let height = self.startingFrame!.height / self.startingFrame!.width * UIScreen.main.bounds.width
+//        let width = self.startingFrame!.width / self.startingFrame!.height * UIScreen.main.bounds.height
+//        self.inputContainerView.alpha = 0
+//        if let keyWindow = UIApplication.shared.keyWindow{
+//            if height > UIScreen.main.bounds.height{
+//                //Landscape
+////                self.zoomingImageView?.centerXAnchor.constraint(equalTo: keyWindow.centerXAnchor).isActive = true
+////                self.zoomingImageView?.centerYAnchor.constraint(equalTo: keyWindow.centerYAnchor).isActive = true
+//                self.zoomingImageView?.widthAnchor.constraint(equalToConstant: 30).isActive = true
+//                self.zoomingImageView?.heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height).isActive = true
+//                
+//            }else{
+//                //portrait
+//                
+//                self.zoomingImageView?.centerYAnchor.constraint(equalTo: keyWindow.centerYAnchor).isActive = true
+//                self.zoomingImageView?.leadingAnchor.constraint(equalTo: keyWindow.leadingAnchor).isActive = true
+//                self.zoomingImageView?.trailingAnchor.constraint(equalTo: keyWindow.trailingAnchor).isActive = true
+//                self.zoomingImageView?.heightAnchor.constraint(equalToConstant: height).isActive = true
+//            }
+//        }
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -357,11 +380,17 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
         let imagePickerController = UIImagePickerController()
         imagePickerController.delegate = self
         imagePickerController.allowsEditing = true
+//        imagePickerController.mediaTypes = [kUTTypeImage as String, kUTTypeMovie as String] //for upload video
         
         present(imagePickerController, animated: true, completion: nil)
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        
+//        if let videoUrl = info[UIImagePickerController.InfoKey.mediaURL]{
+//            print("here the file url ", videoUrl)
+//            return
+//        }
         
         var selectedImageFromPicker: UIImage?
         
@@ -461,10 +490,12 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
             zoomingImageView?.translatesAutoresizingMaskIntoConstraints = false
 //            zoomingImageView.alpha = 0
             
+
+            
             UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 1, options: .curveEaseOut, animations: {
-                
+            
                 self.blackBackgroundView?.alpha = 1
-                
+
                 self.inputContainerView.alpha = 0//hide the inputContainerView
 //                print(keyWindow.frame)
                 let height = self.startingFrame!.height / self.startingFrame!.width * keyWindow.frame.width
@@ -477,20 +508,20 @@ class ChatLogController: UICollectionViewController, UITextFieldDelegate , UICol
                     self.zoomingImageView?.widthAnchor.constraint(equalToConstant: width).isActive = true
                 }else{
 //                    print(keyWindow.frame)
-                    
+
                     self.zoomingImageView?.centerYAnchor.constraint(equalTo: keyWindow.centerYAnchor).isActive = true
                     self.zoomingImageView?.leadingAnchor.constraint(equalTo: keyWindow.leadingAnchor).isActive = true
                     self.zoomingImageView?.trailingAnchor.constraint(equalTo: keyWindow.trailingAnchor).isActive = true
                     self.zoomingImageView?.heightAnchor.constraint(equalToConstant: height).isActive = true
                 }
-                
-                
+
+
 //                zoomingImageView.alpha = 1
-                
+
 //                zoomingImageView.frame = CGRect(x: 0, y: 0, width: keyWindow.frame.width, height: height)
 //
 //                zoomingImageView.center = keyWindow.center
-                
+
             }) { (completed) in
 //                do nothing
             }
